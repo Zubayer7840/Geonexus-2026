@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoWorld: Nexus 2026 - Ultimate Global Sandbox Simulator</title>
+    <style>
+        :root {
+            --bg-color: #090d16;
+            --panel-bg: rgba(15, 23, 42, 0.85);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-glow: #3b82f6;
+            --accent-gradient: linear-gradient(135deg, #2563eb, #1d4ed8);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --success-color: #10b981;
+            --warning-color: #f59e0b;
+            --danger-color: #ef4444;
+            --shadow-subtle: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+        body { background-color: #020617; color: var(--text-primary); height: 100vh; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        
+        .phone-frame { width: 100%; max-width: 430px; height: 100%; max-height: 932px; background: var(--bg-color); display: flex; flex-direction: column; position: relative; overflow: hidden; box-shadow: 0 25px 60px rgba(0,0,0,0.8); border: 1px solid var(--border-color); background-image: radial-gradient(circle at top, #1e293b 0%, #090d16 70%); }
+        @media(min-width: 480px) { .phone-frame { height: 884px; border-radius: 40px; } }
+
+        /* Setup Screen */
+        #setup-screen { position: absolute; inset: 0; background: rgba(2, 6, 23, 0.95); backdrop-filter: blur(20px); z-index: 1000; display: flex; flex-direction: column; justify-content: center; padding: 28px; gap: 18px; }
+        #setup-screen h2 { font-size: 22px; color: #60a5fa; font-weight: 800; text-align: center; letter-spacing: -0.5px; }
+        .form-group { display: flex; flex-direction: column; gap: 6px; }
+        .form-group label { font-size: 12px; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select { padding: 14px 16px; border-radius: 14px; border: 1px solid var(--border-color); background: rgba(255, 255, 255, 0.04); font-size: 14px; outline: none; font-weight: 600; color: var(--text-primary); transition: 0.3s; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--accent-glow); box-shadow: 0 0 15px rgba(59, 130, 246, 0.3); }
+        .form-group select option { background: #0f172a; color: #f8fafc; }
+        .btn-primary { background: var(--accent-gradient); color: white; border: none; padding: 16px; border-radius: 14px; font-weight: 700; font-size: 14px; cursor: pointer; text-align: center; margin-top: 10px; box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4); transition: 0.2s; }
+        .btn-primary:active { transform: scale(0.98); }
+
+        /* Header */
+        .header { padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); background: rgba(15, 23, 42, 0.7); backdrop-filter: blur(15px); z-index: 30; }
+        .header-left { display: flex; flex-direction: column; }
+        .header h1 { font-size: 11px; font-weight: 800; color: #60a5fa; text-transform: uppercase; letter-spacing: 0.5px; }
+        .treasury-display { font-size: 13px; font-weight: 800; color: var(--success-color); }
+        .header-right { display: flex; gap: 6px; align-items: center; }
+        .stats-badge { font-size: 9px; color: var(--text-secondary); background: rgba(255,255,255,0.05); padding: 4px 8px; border-radius: 20px; border: 1px solid var(--border-color); font-weight: 700; }
+        .btn-override { background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: var(--warning-color); padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 800; cursor: pointer; }
+        .btn-lang { background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; padding: 4px 8px; border-radius: 8px; font-size: 9px; font-weight: 800; cursor: pointer; }
+
+        /* Viewport */
+        .app-viewport { flex: 1; position: relative; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; padding-bottom: 260px; scrollbar-width: none; }
+        .app-viewport::-webkit-scrollbar { display: none; }
+        .screen { display: none; flex-direction: column; gap: 14px; animation: fadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1); }
+        .screen.active { display: flex; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* Cards */
+        .card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 20px; padding: 16px; box-shadow: var(--shadow-subtle); backdrop-filter: blur(10px); }
+        .card h3 { font-size: 13px; margin-bottom: 10px; color: #60a5fa; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 8px; font-weight: 700; letter-spacing: 0.3px; }
+        .card p { font-size: 12px; line-height: 1.6; color: var(--text-secondary); margin-bottom: 8px; }
+        .card p b { color: var(--text-primary); }
+        .news-tag { font-size: 9px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #60a5fa; padding: 3px 8px; border-radius: 6px; font-weight: 700; text-transform: uppercase; }
+
+        /* Superpower Status Box */
+        .superpower-box { background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-color); padding: 10px 12px; border-radius: 12px; margin-top: 6px; font-size: 11px; }
+
+        /* Control Box */
+        .action-box { background: rgba(15, 23, 42, 0.92); border-top: 1px solid var(--border-color); padding: 14px 16px; display: flex; flex-direction: column; gap: 8px; position: absolute; bottom: 65px; width: 100%; z-index: 90; backdrop-filter: blur(20px); box-shadow: 0 -15px 30px rgba(0,0,0,0.4); }
+        .action-top-bar { display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--text-secondary); font-weight: 700; }
+        .tool-btn { background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); color: #60a5fa; padding: 4px 10px; border-radius: 8px; cursor: pointer; font-size: 10px; font-weight: 700; }
+        
+        .action-row { display: flex; gap: 8px; align-items: center; }
+        .action-row input { flex: 1; background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 12px 14px; border-radius: 14px; color: var(--text-primary); font-size: 12px; outline: none; font-weight: 500; transition: 0.3s; }
+        .action-row input:focus { border-color: var(--accent-glow); }
+        .btn-mic { background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: var(--danger-color); padding: 12px 14px; border-radius: 14px; font-weight: 700; cursor: pointer; font-size: 14px; transition: 0.2s; }
+        .btn-mic.listening { background: var(--danger-color); color: white; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        .btn-execute { background: var(--accent-gradient); color: white; border: none; padding: 12px 16px; border-radius: 14px; font-weight: 700; cursor: pointer; font-size: 12px; white-space: nowrap; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
+
+        /* Bottom Dock */
+        .dock { position: absolute; bottom: 0; width: 100%; background: rgba(15, 23, 42, 0.95); border-top: 1px solid var(--border-color); display: flex; justify-content: space-around; padding: 8px 4px; z-index: 100; backdrop-filter: blur(20px); }
+        .dock-item { background: none; border: none; color: var(--text-secondary); display: flex; flex-direction: column; align-items: center; font-size: 9px; gap: 4px; cursor: pointer; flex: 1; font-weight: 600; transition: 0.2s; }
+        .dock-item.active, .dock-item:hover { color: #60a5fa; }
+        .dock-item span.icon { font-size: 18px; }
+
+        .sub-btn { background: rgba(255, 255, 255, 0.05); border: 1px solid var(--border-color); padding: 10px 14px; border-radius: 12px; font-size: 11px; font-weight: 700; color: var(--text-primary); cursor: pointer; width: 100%; text-align: left; margin-top: 8px; transition: 0.2s; }
+        .sub-btn:hover { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+    </style>
+</head>
+<body>
+
+<div class="phone-frame">
+    <!-- Setup Screen -->
+    <div id="setup-screen">
+        <h2 id="setup-heading">GeoWorld: Nexus 2026</h2>
+        <div class="form-group">
+            <label id="lbl-name">Leader Name / নেতার নাম:</label>
+            <input type="text" id="setup-name" value="General Zubayer">
+        </div>
+        <div class="form-group">
+            <label id="lbl-country">Select Sovereign Nation / আপনার দেশ:</label>
+            <select id="setup-country">
+                <option value="The People's Republic of Bangladesh">The People's Republic of Bangladesh</option>
+                <option value="The Republic of India">The Republic of India</option>
+                <option value="The People's Republic of China">The People's Republic of China</option>
+                <option value="The United States of America">The United States of America</option>
+                <option value="The Russian Federation">The Russian Federation</option>
+            </select>
+        </div>
+        <button class="btn-primary" id="btn-start" onclick="startGame()">Launch Global Sandbox Simulation</button>
+    </div>
+
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">
+            <h1 id="header-title">GeoWorld: Nexus</h1>
+            <div class="treasury-display">💰 $<span id="treasury-val">5,000,000</span></div>
+        </div>
+        <div class="header-right">
+            <button class="btn-lang" id="lang-btn" onclick="toggleLanguage()">🇧🇩 BN</button>
+            <button class="btn-override" onclick="openCreatorOverride()">👑 Override</button>
+            <div class="stats-badge">📅 <span id="date-display">1 Jan 2026</span></div>
+        </div>
+    </div>
+
+    <!-- Viewport -->
+    <div class="app-viewport">
+        <!-- 1. World Timeline & Superpowers -->
+        <div id="screen-timeline" class="screen active">
+            <div class="card">
+                <h3><span>⚡ Global Intelligence Feed</span> <span class="news-tag">Sandbox</span></h3>
+                <p id="t-feed-desc">Sovereign decrees execute autonomously. Global superpowers operate strictly based on their real-world geopolitical interests.</p>
+            </div>
+
+            <div class="card">
+                <h3><span>🌍 Major Sovereign Powers</span> <span class="news-tag">Autonomous</span></h3>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div class="superpower-box"><b>🇨🇳 The People's Republic of China:</b> Expanding Belt & Road trade networks and tech corridors.</div>
+                    <div class="superpower-box"><b>🇮🇳 The Republic of India:</b> Balancing strategic autonomy and regional manufacturing.</div>
+                    <div class="superpower-box"><b>🇺🇸 The United States of America:</b> Regulating global tech exports and Indo-Pacific alliances.</div>
+                    <div class="superpower-box"><b>🇷🇺 The Russian Federation:</b> Securing energy pipelines and navigating international sanctions.</div>
+                </div>
+            </div>
+
+            <div id="timeline-log-container">
+                <div class="card">
+                    <h3><span>🚀 Simulation Initialized</span> <span class="news-tag">Online</span></h3>
+                    <p>Enter your sovereign decree to reshape history, alter traditional treaties, or direct your state economy.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Diplomacy & Bilateral Relations -->
+        <div id="screen-diplomacy" class="screen">
+            <div class="card">
+                <h3><span>🤝 Global Diplomacy & Alliances</span> <span class="news-tag">Geopolitics</span></h3>
+                <p id="dip-desc">Negotiate with world superpowers. Alter historical ties through smart diplomacy or economic leverage.</p>
+            </div>
+            <div class="card">
+                <h3><span>🌐 Bilateral Relations Index</span> <span class="news-tag">Active</span></h3>
+                <p><b>The Republic of India:</b> Trade Partner (Trust: 52%) <button class="sub-btn" style="width:auto; display:inline; padding:3px 8px;" onclick="doDiplomacy('The Republic of India')">প্রস্তাব পাঠান</button></p>
+                <p><b>The People's Republic of China:</b> Infrastructure Partner (Trust: 68%) <button class="sub-btn" style="width:auto; display:inline; padding:3px 8px;" onclick="doDiplomacy('The People\'s Republic of China')">প্রস্তাব পাঠান</button></p>
+                <p><b>The United States of America:</b> Export & Tech Partner (Trust: 60%) <button class="sub-btn" style="width:auto; display:inline; padding:3px 8px;" onclick="doDiplomacy('The United States of America')">প্রস্তাব পাঠান</button></p>
+            </div>
+        </div>
+
+        <!-- 3. Economy & Fiscal Allocation -->
+        <div id="screen-economy" class="screen">
+            <div class="card">
+                <h3><span>💰 National Budget & Treasury</span> <span class="news-tag">Finance</span></h3>
+                <p id="eco-desc">Allocate state funds, reform tax structures, and build your nation's financial future.</p>
+            </div>
+            <div class="card">
+                <h3><span>📈 Economic Markets</span> <span class="news-tag">Stable</span></h3>
+                <p><b>GDP Growth Rate:</b> 6.8%<br><b>Foreign Direct Investment:</b> +$1.4M / month<br><b>Inflation Rate:</b> 4.1%</p>
+                <button class="sub-btn" onclick="executeEcoInvestment()">💡 Optimized Industrial Growth Package</button>
+            </div>
+        </div>
+
+        <!-- 4. Resources & Supply Chain -->
+        <div id="screen-resources" class="screen">
+            <div class="card">
+                <h3><span>📦 Resources & Logistics</span> <span class="news-tag">Supply Chain</span></h3>
+                <p id="res-desc">Manage domestic and imported strategic resources influenced by global trade shifts.</p>
+            </div>
+            <div class="card">
+                <h3><span>🛢️ Strategic Reserves</span> <span class="news-tag">Stockpile</span></h3>
+                <p><b>Petroleum/Oil:</b> 500,000 Barrels<br><b>Food & Grain Reserve:</b> 2.4 Million Tons<br><b>Rare Earth Elements:</b> 95,000 Tons</p>
+            </div>
+        </div>
+
+        <!-- 5. History & Sandbox Data Export -->
+        <div id="screen-tech" class="screen">
+            <div class="card">
+                <h3><span>📜 Sandbox History Logs</span> <span class="news-tag">Memory</span></h3>
+                <p id="hist-desc">Track how your decisions broke historical patterns. Copy history for new game iterations.</p>
+                <button class="sub-btn" onclick="copyFullHistory()" style="margin-top: 8px;">📋 Copy Sandbox History</button>
+            </div>
+            <div id="history-log-container">
+                <div class="card">
+                    <p style="font-size: 11px; color: var(--text-secondary);">No history recorded yet.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Input Box with Voice Support -->
+    <div class="action-box">
+        <div class="action-top-bar">
+            <span id="queue-count-label">Queue: 0 commands</span>
+            <button class="tool-btn" id="idea-btn" onclick="generateMoreIdeas()">💡 Sandbox Suggestion</button>
+        </div>
+        <div id="command-queue-container"></div>
+        <div class="action-row">
+            <input type="text" id="user-action" placeholder="Type sovereign decree (e.g., revise trade policy with India)...">
+            <button class="btn-mic" id="mic-btn" onclick="toggleVoiceInput()" title="Voice Command">🎤</button>
+            <button class="btn-execute" id="exec-btn" onclick="executeTurn()">Execute Turn</button>
+        </div>
+    </div>
+
+    <!-- Bottom Dock -->
+    <div class="dock">
+        <button class="dock-item active" onclick="switchScreen('timeline', this)"><span class="icon">🌍</span><span id="d-time">World</span></button>
+        <button class="dock-item" onclick="switchScreen('diplomacy', this)"><span class="icon">🤝</span><span id="d-dip">Diplomacy</span></button>
+        <button class="dock-item" onclick="switchScreen('economy', this)"><span class="icon">💰</span><span id="d-eco">Economy</span></button>
+        <button class="dock-item" onclick="switchScreen('resources', this)"><span class="icon">📦</span><span id="d-res">Resources</span></button>
+        <button class="dock-item" onclick="switchScreen('tech', this)"><span class="icon">📜</span><span id="d-tech">History</span></button>
+    </div>
+</div>
+
+<script>
+    let currentDate = new Date(2026, 0, 1);
+    let treasuryBalance = 5000000;
+    let commandQueue = [];
+    let masterHistoryLog = [];
+    let playerProfile = { name: "General Zubayer", country: "The People's Republic of Bangladesh" };
+    let currentLang = 'EN';
+
+    const globalEventsPool = {
+        EN: [
+            "The United States of America: Announced new semiconductor supply chain incentives in the Indo-Pacific.",
+            "The People's Republic of China: Expanded maritime trade corridors and offered infrastructure grants.",
+            "The Republic of India: Adjusted regional security frameworks and increased domestic defense manufacturing.",
+            "The Russian Federation: Re-routed energy export pipelines toward Asian markets.",
+            "Global Event: Unexpected climate fluctuations impacted regional agricultural output, requiring state intervention."
+        ],
+        BN: [
+            "মার্কিন যুক্তরাষ্ট্র: ইন্দো-প্যাসিফিকে নতুন সেমিকন্ডাক্টর সাপ্লাই চেইন প্রণোদনা ঘোষণা করেছে।",
+            "গণচীন: সামুদ্রিক বাণিজ্য করিডোর প্রসারিত করেছে এবং অবকাঠামোগত অনুদান প্রস্তাব করেছে।",
+            "ভারত প্রজাতন্ত্র: আঞ্চলিক নিরাপত্তা কাঠামো পুনর্বিন্যাস করেছে এবং প্রতিরক্ষা উৎপাদন বাড়িয়েছে।",
+            "রুশ ফেডারেশন: জ্বালানি রপ্তানি পাইপলাইন এশিয়ান বাজারের দিকে ঘুরিয়ে দিয়েছে।",
+            "বৈশ্বিক ইভেন্ট: অপ্রত্যাশিত আবহাওয়া পরিবর্তনের ফলে কৃষি উৎপাদনে প্রভাব পড়েছে।"
+        ]
+    };
+
+    const translations = {
+        EN: {
+            setupH: "GeoWorld: Nexus 2026",
+            lblN: "Leader Name / নেতার নাম:",
+            lblC: "Select Sovereign Nation / আপনার দেশ:",
+            btnStart: "Launch Global Sandbox Simulation",
+            title: "GeoWorld: Sandbox",
+            tFeedDesc: "Sovereign decrees execute autonomously. Global superpowers operate strictly based on their real-world geopolitical interests.",
+            dipDesc: "Negotiate with world superpowers. Alter historical ties through smart diplomacy or economic leverage.",
+            ecoDesc: "Allocate state funds, reform tax structures, and build your nation's financial future.",
+            resDesc: "Manage domestic and imported strategic resources influenced by global trade shifts.",
+            histDesc: "Track how your decisions broke historical patterns. Copy history for new game iterations.",
+            queueLabel: "Queue: 0 commands",
+            ideaLabel: "💡 Sandbox Suggestion",
+            placeholder: "Type sovereign decree (e.g., revise trade policy with India)...",
+            execBtn: "Execute Turn",
+            dTime: "World", dDip: "Diplomacy", dEco: "Economy", dRes: "Resources", dTech: "History"
+        },
+        BN: {
+            setupH: "জিওওয়ার্ল্ড: নেক্সাস ২০২৬",
+            lblN: "Leader Name / নেতার নাম:",
+            lblC: "সার্বভৌম দেশ নির্বাচন করুন / আপনার দেশ:",
+            btnStart: "গ্লোবাল স্যান্ডবক্স সিমুলেশন শুরু করুন",
+            title: "জিওওয়ার্ল্ড: স্যান্ডবক্স",
+            tFeedDesc: "রাষ্ট্রীয় ডিক্রিগুলো স্বাধীনভাবে কার্যকর হয়। পরাশক্তিগুলো তাদের বাস্তব ভূ-রাজনৈতিক স্বার্থ অনুযায়ী কাজ করে।",
+            dipDesc: "বিশ্ব শক্তির সাথে কূটনীতি পরিচালনা করুন এবং ঐতিহাসিক সম্পর্ক রূপান্তর করুন।",
+            ecoDesc: "রাষ্ট্রীয় তহবিল বরাদ্দ করুন, কর কাঠামো সংস্কার করুন এবং দেশের অর্থনৈতিক ভবিষ্যৎ গড়ুন।",
+            resDesc: "বৈশ্বিক বাণিজ্য পরিবর্তনের প্রভাবাধীন কৌশলগত সম্পদ পরিচালনা করুন।",
+            histDesc: "আপনার সিদ্ধান্ত কীভাবে ঐতিহাসিক ধারা ভেঙেছে তা ট্র্যাক করুন।",
+            queueLabel: "কিউ: ০ কমান্ড",
+            ideaLabel: "💡 স্যান্ডবক্স আইডিয়া",
+            placeholder: "ডিক্রি লিখুন বা বলুন (যেমন: ভারতের সাথে বাণিজ্য চুক্তি সংশোধন করো)...",
+            execBtn: "টার্ন এক্সিকিউট",
+            dTime: "ওয়ার্ল্ড", dDip: "কূটনীতি", dEco: "অর্থনীতি", dRes: "রিসোর্স", dTech: "ইতিহাস"
+        }
+    };
+
+    function startGame() {
+        const name = document.getElementById('setup-name').value.trim();
+        const country = document.getElementById('setup-country').value;
+        if(name) playerProfile.name = name;
+        if(country) playerProfile.country = country;
+        document.getElementById('header-title').innerText = `${playerProfile.country.split('of ')[1] || playerProfile.country} • ${playerProfile.name}`;
+        document.getElementById('setup-screen').style.display = 'none';
+        updateTreasuryUI();
+    }
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'EN' ? 'BN' : 'EN';
+        document.getElementById('lang-btn').innerText = currentLang === 'EN' ? '🇧🇩 BN' : '🇺🇸 EN';
+        
+        document.getElementById('setup-heading').innerText = translations[currentLang].setupH;
+        document.getElementById('lbl-name').innerText = translations[currentLang].lblN;
+        document.getElementById('lbl-country').innerText = translations[currentLang].lblC;
+        document.getElementById('btn-start').innerText = translations[currentLang].btnStart;
+        
+        document.getElementById('t-feed-desc').innerText = translations[currentLang].tFeedDesc;
+        document.getElementById('dip-desc').innerText = translations[currentLang].dipDesc;
+        document.getElementById('eco-desc').innerText = translations[currentLang].ecoDesc;
+        document.getElementById('res-desc').innerText = translations[currentLang].resDesc;
+        document.getElementById('hist-desc').innerText = translations[currentLang].histDesc;
+        document.getElementById('queue-count-label').innerText = translations[currentLang].queueLabel;
+        document.getElementById('idea-btn').innerText = translations[currentLang].ideaLabel;
+        document.getElementById('user-action').placeholder = translations[currentLang].placeholder;
+        document.getElementById('exec-btn').innerText = translations[currentLang].execBtn;
+
+        document.getElementById('d-time').innerText = translations[currentLang].dTime;
+        document.getElementById('d-dip').innerText = translations[currentLang].dDip;
+        document.getElementById('d-eco').innerText = translations[currentLang].dEco;
+        document.getElementById('d-res').innerText = translations[currentLang].dRes;
+        document.getElementById('d-tech').innerText = translations[currentLang].dTech;
+    }
+
+    function toggleVoiceInput() {
+        const micBtn = document.getElementById('mic-btn');
+        const inputField = document.getElementById('user-action');
+
+        if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+            alert(currentLang === 'BN' ? "ভয়েস রিকগনিশন সমর্থিত নয়।" : "Speech recognition not supported.");
+            return;
+        }
+
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.lang = currentLang === 'BN' ? 'bn-BD' : 'en-US';
+
+        micBtn.classList.add('listening');
+        recognition.onresult = function(event) {
+            inputField.value = event.results[0][0].transcript;
+            micBtn.classList.remove('listening');
+        };
+        recognition.onerror = () => micBtn.classList.remove('listening');
+        recognition.onend = () => micBtn.classList.remove('listening');
+        recognition.start();
+    }
+
+    function updateTreasuryUI() {
+        document.getElementById('treasury-val').innerText = treasuryBalance.toLocaleString();
+    }
+
+    function switchScreen(name, btn) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        const target = document.getElementById('screen-' + name);
+        if(target) target.classList.add('active');
+        document.querySelectorAll('.dock-item').forEach(d => d.classList.remove('active'));
+        if(btn) btn.classList.add('active');
+    }
+
+    function openCreatorOverride() {
+        let val = parseInt(prompt("👑 CREATOR OVERRIDE (Add Treasury Amount):", "100000"));
+        if(!isNaN(val)) {
+            treasuryBalance += val;
+            updateTreasuryUI();
+            alert(`Added $${val.toLocaleString()} to Treasury!`);
+        }
+    }
+
+    function generateMoreIdeas() {
+        const ideas = currentLang === 'BN' ? [
+            "ভারতের প্রজাতন্ত্রের সাথে নতুন মুক্ত বাণিজ্য চুক্তি প্রস্তাব করো।",
+            "সেমিকন্ডাক্টর ও প্রতিরক্ষা প্রযুক্তির জন্য বাজেট ১০% বাড়াও।"
+        ] : [
+            "Propose a new bilateral free trade framework with India.",
+            "Increase national budget allocation for semiconductor and defense tech."
+        ];
+        document.getElementById('user-action').value = ideas[Math.floor(Math.random() * ideas.length)];
+    }
+
+    function doDiplomacy(nation) {
+        let outcome = Math.random() > 0.3 ? (currentLang === 'BN' ? "সফল! দেশটির সাথে কূটনৈতিক ও বাণিজ্যিক সম্পর্ক উন্নত হয়েছে।" : "Success! Bilateral trust and trade enhanced.") : (currentLang === 'BN' ? "জটিলতা তৈরি হয়েছে। দেশটির কৌশলগত অবস্থানে কিছু দূরত্ব সৃষ্টি হয়েছে।" : "Complications arose. Strategic foreign policy stance shifted slightly.");
+        alert(`🌐 Bilateral Diplomacy (${nation}):\n${outcome}`);
+    }
+
+    function executeEcoInvestment() {
+        let profit = 600000 + Math.floor(Math.random() * 500000);
+        treasuryBalance += profit;
+        updateTreasuryUI();
+        alert(currentLang === 'BN' ? `💰 শিল্প প্রবৃদ্ধি থেকে রাষ্ট্রীয় রাজস্ব অর্জিত হয়েছে: +$${profit.toLocaleString()}` : `💰 Industrial growth yielded state revenue: +$${profit.toLocaleString()}`);
+    }
+
+    function executeTurn() {
+        const input = document.getElementById('user-action');
+        const val = input.value.trim();
+        if(val) {
+            commandQueue.push(val);
+            input.value = '';
+        }
+        if(commandQueue.length === 0) {
+            alert(currentLang === 'BN' ? 'দয়া করে কমান্ড দিন।' : 'Please enter a command.');
+            return;
+        }
+
+        currentDate.setDate(currentDate.getDate() + 30);
+        const dateStr = currentDate.toLocaleDateString('en-GB', {day: 'numeric', month: 'short', year: 'numeric'});
+        document.getElementById('date-display').innerText = dateStr;
+
+        const pool = globalEventsPool[currentLang];
+        const randomWorldEvent = pool[Math.floor(Math.random() * pool.length)];
+
+        let turnRevenue = 400000 + Math.floor(Math.random() * 200000);
+        treasuryBalance += turnRevenue;
+        updateTreasuryUI();
+
+        const executedCommands = [...commandQueue];
+        masterHistoryLog.push({ date: dateStr, commands: executedCommands, worldEvent: randomWorldEvent });
+
+        const container = document.getElementById('timeline-log-container');
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `<h3><span>⚡ ${dateStr} • ${currentLang === 'BN' ? 'টার্ন আপডেট' : 'Turn Update'}</span> <span class="news-tag">Autonomous</span></h3><p><b>${currentLang === 'BN' ? 'আপনার ডিক্রি' : 'Your Decree'}:</b> ${executedCommands.join(', ')}<br><br><b>[Global Superpower Reaction]:</b><br><div class="superpower-box">${randomWorldEvent}</div><br><b>${currentLang === 'BN' ? 'নেট রাজস্ব' : 'Net Revenue'}:</b> +$${turnRevenue.toLocaleString()}</p>`;
+        container.prepend(card);
+
+        updateHistoryScreen();
+        commandQueue = [];
+        document.getElementById('command-queue-container').innerHTML = '';
+        document.getElementById('queue-count-label').innerText = currentLang === 'BN' ? "কিউ: ০ কমান্ড" : "Queue: 0 commands";
+        switchScreen('timeline', document.querySelectorAll('.dock-item')[0]);
+    }
+
+    function updateHistoryScreen() {
+        const historyContainer = document.getElementById('history-log-container');
+        historyContainer.innerHTML = '';
+        masterHistoryLog.forEach((entry, i) => {
+            const historyCard = document.createElement('div');
+            historyCard.className = 'card';
+            historyCard.innerHTML = `<h3><span>Turn #${i+1} • ${entry.date}</span> <span class="news-tag">Record</span></h3><p style="font-size:11px;"><b>Decree:</b> ${entry.commands.join(', ')}<br><span style="color:#60a5fa;">${entry.worldEvent}</span></p>`;
+            historyCard.prepend(historyCard);
+        });
+    }
+
+    function copyFullHistory() {
+        if(masterHistoryLog.length === 0) {
+            alert(currentLang === 'BN' ? 'কোনো হিস্ট্রি নেই।' : 'No history found.');
+            return;
+        }
+        let fullText = `=== GEOWORLD: NEXUS 2026 SANDBOX HISTORY ===\nLeader: ${playerProfile.name} (${playerProfile.country})\n\n`;
+        masterHistoryLog.forEach((entry, i) => {
+            fullText += `[Turn ${i+1} - ${entry.date}]\nDecree: ${entry.commands.join(', ')}\nGlobal Event: ${entry.worldEvent}\n\n`;
+        });
+        navigator.clipboard.writeText(fullText).then(() => {
+            alert(currentLang === 'BN' ? 'স্যান্ডবক্স হিস্ট্রি কপি সফল হয়েছে!' : 'Sandbox history copied successfully!');
+        });
+    }
+</script>
+
+</body>
+</html>
